@@ -138,6 +138,7 @@ struct ClassFile
 	uint16_t minor_version{};
 	uint16_t major_version{};
 	span<Constant> consts;
+	span<int> consts_index_map{};
 	AccessFlags access_flags{};
 	const_id class_id{};
 	const_id superclass_id{};

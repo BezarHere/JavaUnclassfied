@@ -85,18 +85,49 @@ inline Error load_file(StreamReader &reader, ClassFile &f)
 	f.minor_version = reader.read<uint16_t>();
 	f.major_version = reader.read<uint16_t>();
 	const uint16_t cpool_len = reader.read<uint16_t>() + 1;
-	Constant *consts = new Constant[ cpool_len ];
+	std::unique_ptr<Constant[]> consts{ new Constant[ cpool_len ] };
+	std::unique_ptr<int[]> consts_index_map{ new int[ cpool_len ] };
+	uint16_t cpool_len_offset = 0;
 
-	for (size_t i{}; i < cpool_len; i++)
+	for (size_t i{}; i + cpool_len_offset < cpool_len; i++)
 	{
 		consts[ i ] = read_const(reader);
+		consts_index_map[ i ] = i + cpool_len_offset;
 		if (is_double_sloted(consts[ i ].tag))
 		{
-			consts[ ++i ].tag = ConstTag::Invalid;
+			cpool_len_offset++;
+			//consts[ ++i ].tag = ConstTag::Invalid;
 		}
+		
 	}
 
-	f.consts = span<Constant>(consts, cpool_len);
+	// very dodgy
+	const uint16_t cpool_computed_len = uint16_t(int(cpool_len) - cpool_len_offset);
+
+	// resizing for consts offset
+	{
+		
+
+
+		// TESTING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		/*consts.release();
+		consts_index_map.release();*/
+
+		//consts.swap(comp_consts);
+		//consts_index_map.swap(comp_consts_index_map);
+
+	}
+
+	
+
+	std::unique_ptr<Constant[]> comp_consts{ (Constant *)memmove(new Constant[ cpool_computed_len ]{}, consts.get(), sizeof(Constant) * cpool_computed_len) };
+	std::unique_ptr<int[]> comp_consts_index_map{ (int *)memmove(new int[cpool_computed_len] {}, consts_index_map.get(), sizeof(int) * cpool_computed_len) };
+
+	// remove all ownerships/data
+	memset(consts.get(), 0, sizeof(Constant) * cpool_len);
+
+	f.consts = span<Constant>(comp_consts.release(), cpool_computed_len);
+	f.consts_index_map = span<int>(comp_consts_index_map.release(), cpool_computed_len);
 
 
 	f.access_flags = reader.read<AccessFlags>();
@@ -140,7 +171,7 @@ inline void class_repr(const ClassFile &file, _T &out)
 	
 	for (int i{}; i < file.consts.size(); i++)
 	{
-		out << " [ " << i << " ] " << get_const_type_name(file.consts[ i ].tag) << ": " << get_const_value_str(i, file) << '\n';
+		out << " [ " << file.consts_index_map[ i ] << " ] " << get_const_type_name(file.consts[ i ].tag) << ": " << get_const_value_str(i, file) << '\n';
 	}
 
 	out << "Interfaces: " << file.interfaces.size() << '\n';
@@ -190,7 +221,7 @@ inline void class_repr(const ClassFile &file, _T &out)
 
 int main()
 {
-	const string path = "F:\\Assets\\visual studio\\JavaUnclassfied\\JavaUnclassfied\\ald.class";
+	const string path = "F:\\Assets\\visual studio\\JavaUnclassfied\\JavaUnclassfied\\classes\\Main.class";
 	ClassFile f{};
 	std::cout << (int)load_file(path, f) << '\n';
 	std::ofstream fs{ "F:\\Assets\\visual studio\\JavaUnclassfied\\JavaUnclassfied\\test.txt" };

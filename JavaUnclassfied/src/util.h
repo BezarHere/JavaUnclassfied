@@ -146,6 +146,17 @@ inline std::string get_const_type_name(const ConstTag &t)
 	return std::to_string((int)t);
 }
 
+template <typename _T>
+inline std::string to_string_reversed_buffer(const _T *val)
+{
+	_T v{};
+	for (size_t i{}; i < sizeof(_T); i++)
+	{
+		((byte_t *)&v)[ i ] = ((byte_t *)val)[ sizeof(_T) - (i + 1) ];
+	}
+	return std::to_string(v);
+}
+
 inline std::string get_const_value_str(const int index, const ClassFile &file, int i = 64, bool beutiful = true)
 {
 	if (--i <= 0)
@@ -160,13 +171,13 @@ inline std::string get_const_value_str(const int index, const ClassFile &file, i
 	case ConstTag::String:
 		return std::string((char *)data, c.data.size());
 	case ConstTag::Int:
-		return std::to_string(*(int32_t *)data);
+		return to_string_reversed_buffer((int32_t *)data);
 	case ConstTag::Long:
-		return std::to_string(*(int64_t *)data);
+		return to_string_reversed_buffer((int64_t *)data);
 	case ConstTag::Float:
-		return std::to_string(*(float *)data);
+		return to_string_reversed_buffer((float *)data);
 	case ConstTag::Double:
-		return std::to_string(*(double *)data);
+		return to_string_reversed_buffer((double *)data);
 	case ConstTag::Class:
 	case ConstTag::StringRef:
 	case ConstTag::MethodType:
